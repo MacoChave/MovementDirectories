@@ -33,7 +33,7 @@ int isFile (char * filename)
 
 int createFolder (char * directory)
 {
-    return mkdir(directory, 777);
+    return mkdir(directory, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 }
 
 int moveFile (char * filename, char * destiny)
