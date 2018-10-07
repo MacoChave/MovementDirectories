@@ -6,6 +6,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "../struct/struct-movie.h"
 
@@ -29,21 +31,14 @@ int isFile (char * filename)
     return 0;
 }
 
-int createFolder (char * newDirectory)
+int createFolder (char * directory)
 {
-    size_t size = strlen(newDirectory) + sizeof(char) * 12;
-    char * cmd = (char *)malloc(size);
-    memset(cmd, 0, size);
-    strcpy(cmd, "mkdir -p ");
-    strcat(cmd, newDirectory);
-
-    return (system(cmd) == 0) ? 1 : 0;
+    return mkdir(directory, 777);
 }
 
-int moveFile (char * oldDirectory, char * newDirectory)
+int moveFile (char * filename, char * destiny)
 {
-    printf("OLD: %s NEW: %s\n", oldDirectory, newDirectory);
-    return (rename(oldDirectory, newDirectory) == 0) ? 1 : 0;
+    return rename(filename, destiny);
 }
 
 void orderFile (char * rootDirectory, char * filename)
@@ -53,45 +48,33 @@ void orderFile (char * rootDirectory, char * filename)
 
     if ((file = fopen(filename, "r")) == NULL)
     {
-        perror("[e] ARCHIVO NO ACCESIBLE\n");
+        perror("[e]\n");
         return;
     }
 
-    fgets(movie.year, 5, file);
-    fgets(movie.genre, 20, file);
-    fgets(movie.genre, 20, file);
+    fgets(movie.year, 5, file); // OBTENER AÑO
+    fgets(movie.genre, 20, file); // OBTENER EL SALTO DE LÍNEA
+    fgets(movie.genre, 20, file); // OBTENER GENERO
     fflush(file);
     fclose(file);
 
-    char * oldDirectory = (char *)malloc(sizeof(char) * 120);
     char * newDirectory = (char *)malloc(sizeof(char) * 120);
-    memset(oldDirectory, '\0', 120);
     memset(newDirectory, '\0', 120);
     
-    strcpy(newDirectory, "'");
-    strcat(newDirectory, rootDirectory);
-    strcat(newDirectory, "/");
-    strcat(newDirectory, movie.genre);
-    strcat(newDirectory, "/");
-    strcat(newDirectory, movie.year);
-    strcat(newDirectory, "/");
-    strcat(newDirectory, filename);
-    strcat(newDirectory, "'");
+    strcpy(newDirectory, movie.genre);
+    strcat(newDirectory, "/"); // PARA ASEGURAR CARPETA GENERO
+    if (!createFolder(newDirectory))
+    {
+        strcat(newDirectory, movie.year);
+        strcat(newDirectory, "/"); // PARA ASEGURAR CARPETA AÑO
+        (!createFolder(newDirectory)) ? printf("Directorio creado\n") : perror("[e]\n");
+    }
 
-    strcpy(oldDirectory, "'");
-    strcat(oldDirectory, rootDirectory);
-    strcat(oldDirectory, "/");
-    strcat(oldDirectory, filename);
-    strcat(oldDirectory, "'");
-    
-    createFolder(newDirectory);
-    (moveFile(oldDirectory, newDirectory)) ?
-        printf("[i] Archivo ordenado\n") : perror("[e] No pudo moverse el archivo\n");
+    strcat(newDirectory, filename);
+    (!moveFile(filename, newDirectory)) ? printf("Archivo movido\n") : perror("[e]\n");
         
     free(newDirectory);
-    free(oldDirectory);
     newDirectory = NULL;
-    oldDirectory = NULL;
 }
 
 int orderLibrary (char * rootDirectory)
@@ -102,7 +85,7 @@ int orderLibrary (char * rootDirectory)
     dir = opendir(rootDirectory);
     if (dir == NULL)
     {
-        perror("[e] ERROR AL ABRIR DIRECTORIO\n");
+        perror("[e]\n");
         return 0;
     }
 
@@ -111,12 +94,12 @@ int orderLibrary (char * rootDirectory)
     {
         printf("FILE: %s\n", stdirent->d_name);
         if (!isFile(stdirent->d_name))
-            continue;
+            continue; // NO ES UN ARCHIVO PELICULA
         
-        orderFile(rootDirectory, stdirent->d_name);
+        orderFile(rootDirectory, stdirent->d_name); // ORDENAR ARCHIVO PELICULA
         i++;
     }
-    printf("[i] SE ORDENARON %d ARCHIVOS", i);
+    printf(">> Se ordenaron los ficheros\n");
     
     closedir(dir);
     return 1;
